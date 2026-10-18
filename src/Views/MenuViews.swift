@@ -80,7 +80,7 @@ final class WindowCard: NSView {
 final class CreditExpiryRow: NSView {
     init(credit: Credit, index: Int, now: Date = Date()) {
         super.init(frame: NSRect(x: 0, y: 0, width: 274, height: 54))
-        let title = textLabel("リセット券 \(index + 1)", size: 11, secondary: true)
+        let title = textLabel("リセットチケット \(index + 1)", size: 11, secondary: true)
         title.frame = NSRect(x: 16, y: 31, width: 150, height: 16)
         addSubview(title)
         let formatter = DateFormatter()
@@ -100,7 +100,7 @@ final class CreditExpiryRow: NSView {
         let detail =
             credit.expiresAt.map { "有効期限：\(full.string(from: Date(timeIntervalSince1970: $0)))" } ?? "有効期限を取得できません"
         toolTip = detail
-        setAccessibilityLabel("リセット券\(index + 1)。\(detail)。\(credit.timeLeft(now: now))")
+        setAccessibilityLabel("リセットチケット\(index + 1)。\(detail)。\(credit.timeLeft(now: now))")
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
 }
@@ -111,7 +111,7 @@ final class CreditListMenu: NSMenu, NSMenuDelegate {
     init(snapshot: Snapshot) {
         details = snapshot.creditDetails
         count = snapshot.count
-        super.init(title: "リセット券")
+        super.init(title: "リセットチケット")
         delegate = self
         minimumWidth = 274
         autoenablesItems = false
@@ -134,7 +134,7 @@ final class CreditListMenu: NSMenu, NSMenuDelegate {
         }
         let missing = count.map { max(0, $0 - sorted.count) } ?? 0
         if missing > 0 || sorted.isEmpty {
-            let text = count == 0 ? "リセット券なし" : missing > 0 ? "\(missing)枚 · 期限未取得" : "期限未取得"
+            let text = count == 0 ? "リセットチケットなし" : missing > 0 ? "\(missing)枚 · 期限未取得" : "期限未取得"
             let item = NSMenuItem(title: text, action: nil, keyEquivalent: "")
             addItem(item)
         }

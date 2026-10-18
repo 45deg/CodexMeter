@@ -16,7 +16,7 @@ func recoveryEvents(previous: Snapshot?, current: Snapshot, scheduled: Bool = tr
     let newIDs = Set(current.creditIDs).subtracting(previous.creditIDs)
     let increased = (current.count ?? 0) > (previous.count ?? Int.max)
     if increased || (!previous.creditIDs.isEmpty && !newIDs.isEmpty) {
-        result.append(("Codexのリセット券が追加されました", "利用可能なリセット券：\(current.count.map(String.init) ?? "不明")枚"))
+        result.append(("Codexのリセットチケットが追加されました", "利用可能なリセットチケット：\(current.count.map(String.init) ?? "不明")枚"))
     }
     return result
 }

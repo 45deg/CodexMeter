@@ -108,7 +108,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
                 menu.addItem(card)
             }
             menu.addItem(.separator())
-            let credits = row("リセット券　\(latest.count.map { "\($0)枚" } ?? "—")")
+            let credits = row("リセットチケット　\(latest.count.map { "\($0)枚" } ?? "—")")
             credits.submenu = CreditListMenu(snapshot: latest)
         }
         if failure != nil { _ = row("接続エラー…", #selector(showError)) }
@@ -181,7 +181,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     }
     @objc private func testNotification() {
         requestPermission()
-        notify("Codex Meter", "通知のテストです。臨時回復とリセット券の追加をお知らせします。")
+        notify("Codex Meter", "通知のテストです。臨時回復とリセットチケットの追加をお知らせします。")
     }
     @objc private func openSettings() {
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension")!)

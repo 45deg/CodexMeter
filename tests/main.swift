@@ -20,8 +20,8 @@ func testRecoveryNotifications() {
     precondition(recoveryEvents(previous: old, current: snapshot(300, 0, ["a"], 1)).count == 1, "定期回復を通知する")
     precondition(
         recoveryEvents(previous: old, current: snapshot(300, 0, ["a"], 1), scheduled: false).isEmpty, "定期回復の通知を無効にできる")
-    precondition(recoveryEvents(previous: old, current: snapshot(100, 80, ["a", "b"], 2)).count == 1, "券の追加を通知する")
-    precondition(recoveryEvents(previous: old, current: snapshot(100, 80, [], 0)).isEmpty, "券の消費は通知しない")
+    precondition(recoveryEvents(previous: old, current: snapshot(100, 80, ["a", "b"], 2)).count == 1, "チケットの追加を通知する")
+    precondition(recoveryEvents(previous: old, current: snapshot(100, 80, [], 0)).isEmpty, "チケットの消費は通知しない")
     precondition(recoveryEvents(previous: old, current: snapshot(300, 0, ["b"], 1, "other")).isEmpty, "アカウント変更時は通知しない")
     precondition(
         recoveryEvents(previous: snapshot(250, 90, [], 0), current: snapshot(300, 0, [], 0)).count == 1, "予定より早い回復を通知する"
@@ -60,8 +60,8 @@ func testCreditExpiry() {
     func credit(_ seconds: Double?) -> Credit {
         Credit(id: "test", status: "available", expiresAt: seconds.map { 1000 + $0 })
     }
-    precondition(credit(86400 * 4.5).timeLeft(now: now) == "あと4日", "券の残り日数を切り捨てる")
-    precondition(credit(3600 * 2.5).timeLeft(now: now) == "あと2時間", "券の残り時間を切り捨てる")
+    precondition(credit(86400 * 4.5).timeLeft(now: now) == "あと4日", "チケットの残り日数を切り捨てる")
+    precondition(credit(3600 * 2.5).timeLeft(now: now) == "あと2時間", "チケットの残り時間を切り捨てる")
     precondition(credit(30).timeLeft(now: now) == "あと1分", "1分未満はあと1分")
     precondition(credit(0).timeLeft(now: now) == "期限切れ", "期限切れを表示する")
     precondition(credit(nil).timeLeft(now: now) == "期限未取得", "期限不明を表示する")
@@ -75,7 +75,7 @@ func testLegacySnapshot() throws {
     legacy.removeValue(forKey: "creditDetails")
     let restored = try JSONDecoder().decode(Snapshot.self, from: JSONSerialization.data(withJSONObject: legacy))
     precondition(
-        restored.creditDetails == nil && restored.windows.count == before.windows.count, "券の詳細がない旧スナップショットを復元できる")
+        restored.creditDetails == nil && restored.windows.count == before.windows.count, "チケットの詳細がない旧スナップショットを復元できる")
 }
 
 do {
@@ -84,7 +84,7 @@ do {
     try testRingSelection()
     testCreditExpiry()
     try testLegacySnapshot()
-    print("通知・利用枠・リング・券の期限・旧データ互換：21ケース成功")
+    print("通知・利用枠・リング・チケットの期限・旧データ互換：21ケース成功")
 } catch {
     fputs("テスト失敗: \(error)\n", stderr)
     exit(1)
