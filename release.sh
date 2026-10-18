@@ -16,8 +16,6 @@ ditto --norsrc --noextattr --noacl "$APP" "$STAGING/$PACKAGE/Codex Meter.app"
 for DOCUMENT in README.md LICENSE; do
     cp "$DOCUMENT" "$STAGING/$PACKAGE/"
 done
-mkdir -p "$STAGING/$PACKAGE/assets"
-cp assets/screenshot.png "$STAGING/$PACKAGE/assets/"
 ditto -c -k --norsrc --noextattr --noacl --keepParent "$STAGING/$PACKAGE" "$STAGING/$PACKAGE.zip"
 mv "$STAGING/$PACKAGE.zip" "$PROJECT_ROOT/dist/$PACKAGE.zip"
 (cd dist && shasum -a 256 "$PACKAGE.zip" > "$PACKAGE.zip.sha256")

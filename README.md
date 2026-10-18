@@ -1,5 +1,7 @@
 # Codex Meter
 
+ビルド済みアプリは配布していません。Developer ID署名とAppleの公証を受けていないため、macOSで起動が制限されることがあります。利用する場合は、ソースからビルドしてください。
+
 ![Codex Meterの実際のメニュー画面（表示値は撮影用サンプル）](assets/screenshot.png)
 
 Codexの利用枠をメニューバーに表示する非公式macOSアプリです。残量、回復までの時間、リセットチケットの枚数・有効期限を確認できます。
@@ -13,11 +15,9 @@ Codexの利用枠をメニューバーに表示する非公式macOSアプリで�
 
 ## インストール
 
-1. ZIPを展開し、`Codex Meter.app`を`~/Applications`に移します。
-2. CLIが未ログインの場合は、ターミナルで`codex login`を実行します。
-3. アプリを開き、通知を使う場合は通知を許可します。
+Xcode Command Line ToolsまたはXcodeが必要です。下記の「ソースからビルド」の手順でアプリをビルドしてインストールしてください。
 
-Developer IDによる署名・Appleによる公証は未実施のため、macOSで起動が制限される場合があります。
+CLIが未ログインの場合は、ビルド後にターミナルで`codex login`を実行してください。通知を使う場合は、初回起動時に通知を許可します。
 
 自動起動する場合は「システム設定 → 一般 → ログイン項目」に追加してください。
 
@@ -48,7 +48,6 @@ Xcode Command Line ToolsまたはXcodeが必要です。
 zsh build.sh    # build/Codex Meter.app を生成
 zsh test.sh     # テスト
 zsh install.sh  # ~/Applicationsへ配置・起動
-zsh release.sh  # dist/へ配布ZIPとSHA-256を生成
 ```
 
 `install.sh`は同名アプリを更新し、旧版のLaunchAgentがあれば無効化・退避します。自動起動は登録しません。
