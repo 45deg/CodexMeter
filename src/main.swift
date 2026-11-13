@@ -1,3 +1,4 @@
+// Dispatches the connection check or starts the menu bar app through AppDelegate.
 import Cocoa
 
 let arguments = Array(CommandLine.arguments.dropFirst())
@@ -10,6 +11,6 @@ if arguments == ["--check"] {
     app.delegate = delegate
     app.run()
 } else {
-    fputs("使い方: CodexMeter [--check]\n", stderr)
+    fputs(localized("Usage: CodexMeter [--check]") + "\n", stderr)
     exit(1)
 }

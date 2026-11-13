@@ -1,3 +1,4 @@
+// Defines Codex limit and ticket data, including cached snapshots and labels for display.
 import Foundation
 
 struct Window: Codable {
@@ -6,10 +7,10 @@ struct Window: Codable {
     let resetsAt: Double?
     var remaining: Int { Int(max(0, min(100, 100 - usedPercent)).rounded(.down)) }
     var label: String {
-        guard let minutes = windowDurationMins else { return "利用枠" }
-        if minutes == 10080 { return "週間" }
-        if minutes % 60 == 0 { return "\(minutes / 60)時間" }
-        return "\(minutes)分"
+        guard let minutes = windowDurationMins else { return localized("Usage limit") }
+        if minutes == 10080 { return localized("Weekly") }
+        if minutes % 60 == 0 { return localized("%lld hr", minutes / 60) }
+        return localized("%lld min", minutes)
     }
 }
 struct Bucket: Decodable {
@@ -21,12 +22,12 @@ struct Credit: Codable {
     let status: String
     let expiresAt: Double?
     func timeLeft(now: Date = Date()) -> String {
-        guard let expiresAt else { return "期限未取得" }
+        guard let expiresAt else { return localized("Expiry unknown") }
         let seconds = expiresAt - now.timeIntervalSince1970
-        if seconds <= 0 { return "期限切れ" }
-        if seconds >= 86400 { return "あと\(Int(seconds / 86400))日" }
-        if seconds >= 3600 { return "あと\(Int(seconds / 3600))時間" }
-        return "あと\(max(1, Int(ceil(seconds / 60))))分"
+        if seconds <= 0 { return localized("Expired") }
+        if seconds >= 86400 { return localized("%lldd left", Int(seconds / 86400)) }
+        if seconds >= 3600 { return localized("%lldh left", Int(seconds / 3600)) }
+        return localized("%lldm left", max(1, Int(ceil(seconds / 60))))
     }
 }
 struct Credits: Decodable {

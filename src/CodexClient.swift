@@ -1,3 +1,4 @@
+// Starts the Codex CLI app server and reads the account and usage limits into a Snapshot.
 import Foundation
 
 enum MeterError: LocalizedError {
@@ -16,7 +17,7 @@ func fetchLimits() throws -> Snapshot {
         "/Applications/Codex.app/Contents/Resources/codex",
     ]
     guard let executable = candidates.first(where: { FileManager.default.isExecutableFile(atPath: $0) }) else {
-        throw MeterError.message("Codex CLIが見つかりません。Codex CLIをインストールし、codex loginでログインしてください。")
+        throw MeterError.message(localized("Codex CLI was not found. Install it and run codex login."))
     }
     let process = Process()
     let input = Pipe()
@@ -51,13 +52,19 @@ func fetchLimits() throws -> Snapshot {
                     let replyID = value["id"] as? Int, replyID == id
                 else { continue }
                 if let error = value["error"] as? [String: Any] {
-                    throw MeterError.message(error["message"] as? String ?? "Codexからエラーが返りました")
+                    throw MeterError.message(error["message"] as? String ?? localized("Codex returned an error."))
                 }
-                guard let result = value["result"] else { throw MeterError.message("応答にデータがありません") }
+                guard let result = value["result"] else {
+                    throw MeterError.message(localized("The Codex response contained no data."))
+                }
                 return try JSONSerialization.data(withJSONObject: result)
             }
             let chunk = output.fileHandleForReading.availableData
-            if chunk.isEmpty { throw MeterError.message("取得できませんでした。接続またはCodex CLIのログインを確認してください（30秒で中断）。") }
+            if chunk.isEmpty {
+                throw MeterError.message(localized(
+                    "Could not fetch usage. Check your connection and Codex CLI login. Requests time out after 30 seconds."
+                ))
+            }
             buffer.append(chunk)
         }
     }
@@ -72,11 +79,12 @@ func fetchLimits() throws -> Snapshot {
     let accountData = try JSONSerialization.jsonObject(with: response(1)) as? [String: Any]
     let account = accountData?["account"] as? [String: Any]
     guard let email = account?["email"] as? String else {
-        throw MeterError.message("Codex CLIでChatGPTアカウントにログインしてください。ターミナルで codex login を実行できます。")
+        throw MeterError.message(
+            localized("Sign in to Codex CLI with your ChatGPT account. Run codex login in Terminal."))
     }
     try send(["id": 2, "method": "account/rateLimits/read"])
     let limits = try JSONDecoder().decode(Limits.self, from: response(2))
-    guard !limits.windows.isEmpty else { throw MeterError.message("利用枠が返されませんでした") }
+    guard !limits.windows.isEmpty else { throw MeterError.message(localized("Codex did not return usage limits.")) }
     return Snapshot(
         account: email, windows: limits.windows,
         creditIDs: limits.rateLimitResetCredits?.credits?.filter { $0.status == "available" }.map(\.id) ?? [],

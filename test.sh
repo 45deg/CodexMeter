@@ -1,4 +1,5 @@
 #!/bin/zsh
+# Compiles and runs the model, notification, and ring tests without launching the app.
 set -eu
 setopt pipefail
 cd -- "${0:A:h}"
@@ -7,6 +8,6 @@ mkdir -p build/tests
 METER_CACHE="${TMPDIR:-/tmp}/codex-meter-module-cache"
 CLANG_MODULE_CACHE_PATH="$METER_CACHE" swiftc -swift-version 5 -module-cache-path "$METER_CACHE" \
     -target "arm64-apple-macos$METER_MIN_MACOS_VERSION" -Onone \
-    src/Models.swift src/RecoveryEvents.swift src/RingState.swift tests/main.swift \
+    src/Localization.swift src/Models.swift src/RecoveryEvents.swift src/RingState.swift tests/main.swift \
     -o build/tests/CodexMeterTests
 build/tests/CodexMeterTests

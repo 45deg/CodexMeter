@@ -1,13 +1,14 @@
 #!/bin/zsh
+# Builds and signs the app bundle, including its icons and localizations.
 set -eu
 setopt pipefail
 cd -- "${0:A:h}"
 PROJECT_ROOT="$PWD"
 VERSION="$(< VERSION)"
 METER_MIN_MACOS_VERSION="$(< MACOS_MIN_VERSION)"
-[[ "$VERSION" =~ '^[0-9]+\.[0-9]+\.[0-9]+$' ]] || { print -u2 'VERSIONの形式が不正です'; exit 1; }
+[[ "$VERSION" =~ '^[0-9]+\.[0-9]+\.[0-9]+$' ]] || { print -u2 'VERSION must use the form X.Y.Z'; exit 1; }
 for TOOL in swiftc sips iconutil codesign; do
-    command -v "$TOOL" >/dev/null || { print -u2 "必要なコマンドがありません: $TOOL"; exit 1; }
+    command -v "$TOOL" >/dev/null || { print -u2 "Required command not found: $TOOL"; exit 1; }
 done
 mkdir -p build
 cd build
@@ -19,12 +20,14 @@ for ICON_SIZE in 16 32 128 256 512; do
     sips -z "$ICON_RETINA" "$ICON_RETINA" "$PROJECT_ROOT/assets/AppIcon.png" --out "AppIcon.iconset/icon_${ICON_SIZE}x${ICON_SIZE}@2x.png" >/dev/null
 done
 iconutil -c icns AppIcon.iconset -o 'Codex Meter.app/Contents/Resources/AppIcon.icns'
+cp -R "$PROJECT_ROOT"/resources/*.lproj 'Codex Meter.app/Contents/Resources/'
 METER_CACHE="${TMPDIR:-/tmp}/codex-meter-module-cache"
 CLANG_MODULE_CACHE_PATH="$METER_CACHE" swiftc -swift-version 5 -module-cache-path "$METER_CACHE" -target "arm64-apple-macos$METER_MIN_MACOS_VERSION" -O "$PROJECT_ROOT"/src/*.swift "$PROJECT_ROOT"/src/Views/*.swift -o 'Codex Meter.app/Contents/MacOS/CodexMeter' -framework Cocoa -framework UserNotifications
 cat > 'Codex Meter.app/Contents/Info.plist' <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
+<key>CFBundleDevelopmentRegion</key><string>en</string>
 <key>CFBundleExecutable</key><string>CodexMeter</string>
 <key>CFBundleIdentifier</key><string>local.codex.meter</string>
 <key>CFBundleName</key><string>Codex Meter</string>
@@ -39,4 +42,4 @@ PLIST
 plutil -lint 'Codex Meter.app/Contents/Info.plist'
 codesign --force --sign - 'Codex Meter.app'
 codesign --verify --strict 'Codex Meter.app'
-echo "作成完了: build/Codex Meter.app ($VERSION / Apple Silicon、アドホック署名)"
+echo "Built build/Codex Meter.app ($VERSION, Apple Silicon, ad hoc signature)"

@@ -1,3 +1,4 @@
+// Refreshes Codex snapshots, delivers notifications, and builds the status item and settings menus.
 import Cocoa
 import UserNotifications
 
@@ -76,20 +77,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         let windows = latest?.windows ?? []
         let percent = windows.map { window -> String in
             let value = showUsed ? 100 - window.remaining : window.remaining
-            let prefix = windows.count > 1 ? (window.windowDurationMins == 10080 ? "週 " : window.label + " ") : ""
-            return "\(prefix)\(value)%"
+            guard windows.count > 1 else { return "\(value)%" }
+            let label = window.windowDurationMins == 10080 ? localized("Wk") : window.label
+            return "\(label) \(value)%"
         }.joined(separator: " · ")
         item.button?.title = windows.isEmpty ? (failure == nil ? "…" : "!") : percent + (failure == nil ? "" : " !")
         let rings = RingState(windows: windows, showUsed: showUsed)
         item.button?.image = ringImage(state: rings)
         item.button?.imagePosition = .imageLeading
-        let ringLegend =
-            rings.isDouble
-            ? "外：5時間\(rings.outer == nil ? "（未取得・点線）" : "") ／ 内：週間" : "リング：\(windows.first?.label ?? "未取得")"
-        item.button?.toolTip = failure ?? "Codex · \(showUsed ? "使用済み" : "残り") \(percent)\n\(ringLegend)"
+        let ringLegend: String
+        if rings.isDouble {
+            ringLegend = rings.outer == nil
+                ? localized("Outer: 5-hour limit unavailable (dashed) / Inner: weekly limit")
+                : localized("Outer: 5-hour limit / Inner: weekly limit")
+        } else if let window = windows.first {
+            ringLegend = localized("Ring: %@", window.label)
+        } else {
+            ringLegend = localized("Usage unavailable")
+        }
+        let usage = showUsed ? localized("%@ used", percent) : localized("%@ remaining", percent)
+        let tooltip = percent.isEmpty ? ringLegend : "\(usage)\n\(ringLegend)"
+        item.button?.toolTip = failure ?? tooltip
         item.button?.setAccessibilityLabel(
-            failure.map { "Codex Meter、取得エラー。\($0)" }
-                ?? "Codex Meter、\(showUsed ? "使用済み" : "残り") \(percent)。\(ringLegend)")
+            failure.map { localized("Codex Meter. Usage error: %@", $0) } ?? "Codex Meter. \(tooltip)")
     }
 
     private func makeMenu() -> NSMenu {
@@ -108,28 +118,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
                 menu.addItem(card)
             }
             menu.addItem(.separator())
-            let credits = row("リセットチケット　\(latest.count.map { "\($0)枚" } ?? "—")")
+            let count = latest.count.map { localized("%lld", $0) } ?? "—"
+            let credits = row(localized("Reset Tickets: %@", count))
             credits.submenu = CreditListMenu(snapshot: latest)
         }
-        if failure != nil { _ = row("接続エラー…", #selector(showError)) }
+        if failure != nil { _ = row(localized("Connection Error…"), #selector(showError)) }
         menu.addItem(.separator())
-        let refreshItem = row(busy ? "更新中…" : "更新", #selector(refresh))
+        let refreshItem = row(busy ? localized("Refreshing…") : localized("Refresh"), #selector(refresh))
         refreshItem.isEnabled = !busy
         refreshItem.keyEquivalent = "r"
         if !busy, let updated = latest?.date {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "HH:mm"
-            let title = NSMutableAttributedString(string: "更新", attributes: [.font: NSFont.menuFont(ofSize: 0)])
+            let title = NSMutableAttributedString(string: localized("Refresh"), attributes: [.font: NSFont.menuFont(ofSize: 0)])
             title.append(
                 NSAttributedString(
-                    string: "  最終更新 \(formatter.string(from: updated))",
+                    string: localized("  Last updated %@", formatDate(updated, template: "jm")),
                     attributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.secondaryLabelColor]))
             refreshItem.attributedTitle = title
         }
-        let settings = row("設定")
+        let settings = row(localized("Settings"))
         settings.submenu = makeSettingsMenu()
         menu.addItem(.separator())
-        row("Codex Meterを終了", #selector(quit)).keyEquivalent = "q"
+        row(localized("Quit Codex Meter"), #selector(quit)).keyEquivalent = "q"
         return menu
     }
 
@@ -141,10 +150,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             submenu.addItem(entry)
             return entry
         }
-        let display = setting("表示", nil)
+        let display = setting(localized("Display"), nil)
         let displayMenu = NSMenu()
         for (title, action, selected) in [
-            ("残量", #selector(showRemaining), !showUsed), ("使用量", #selector(showUsage), showUsed),
+            (localized("Remaining"), #selector(showRemaining), !showUsed), (localized("Usage"), #selector(showUsage), showUsed),
         ] {
             let option = NSMenuItem(title: title, action: action, keyEquivalent: "")
             option.target = self
@@ -153,13 +162,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         }
         display.submenu = displayMenu
         submenu.addItem(.separator())
-        let notify = setting("通知", #selector(toggleNotifications))
+        let notify = setting(localized("Notifications"), #selector(toggleNotifications))
         notify.state = notificationsEnabled ? .on : .off
-        let scheduled = setting("定期回復", #selector(toggleScheduled))
+        let scheduled = setting(localized("Scheduled Resets"), #selector(toggleScheduled))
         scheduled.state = scheduledEnabled ? .on : .off
         submenu.addItem(.separator())
-        _ = setting("通知をテスト", #selector(testNotification))
-        _ = setting("通知設定…", #selector(openSettings))
+        _ = setting(localized("Test Notification"), #selector(testNotification))
+        _ = setting(localized("Notification Settings…"), #selector(openSettings))
         return submenu
     }
     @objc private func showRemaining() {
@@ -181,14 +190,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     }
     @objc private func testNotification() {
         requestPermission()
-        notify("Codex Meter", "通知のテストです。臨時回復とリセットチケットの追加をお知らせします。")
+        notify(
+            "Codex Meter",
+            localized("This is a test. Codex Meter can notify you about early resets and new reset tickets."))
     }
     @objc private func openSettings() {
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension")!)
     }
     @objc private func showError() {
         let alert = NSAlert()
-        alert.messageText = "利用状況を取得できません"
+        alert.messageText = localized("Could Not Fetch Usage")
         alert.informativeText = failure ?? ""
         alert.runModal()
     }

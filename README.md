@@ -1,83 +1,87 @@
 # Codex Meter
 
-Codexの利用枠をメニューバーに表示する非公式macOSアプリです。残量、回復までの時間、リセットチケットの枚数・有効期限を確認できます。
+[日本語](README_ja.md)
 
-![Codex Meterの実際のメニュー画面（表示値は撮影用サンプル）](assets/screenshot.png)
+Codex Meter is an unofficial macOS menu bar app for tracking Codex usage. See how much of your limit is left, when it resets, and how many reset tickets you have and when they expire.
 
-## 対応環境
+![Codex Meter menu in Japanese, showing sample values](assets/screenshot.png)
 
-- Apple Silicon搭載Mac、macOS 15 Sequoia以降
-- ChatGPTアカウントでログイン済みのCodex CLI（APIキーのみのログインは対象外）
+## Requirements
 
-動作確認済み：macOS 27.0.1。macOS 15での実機確認は未実施です。
+- A Mac with Apple silicon running macOS 15 Sequoia or later
+- Codex CLI signed in with a ChatGPT account. API key sign-in alone is not supported.
 
-## インストール
+Previously tested on macOS 27.0.1. The app has not been tested on macOS 15.
+
+## Installation
 
 > [!IMPORTANT]
-> ビルド済みアプリは配布していません。利用する場合は、[ソースからビルド](#ソースからビルド)してください。
+> Codex Meter is currently available as source only. Follow the [build instructions](#build-from-source) to install it.
 >
-> Developer ID署名とAppleの公証を受けていないため、macOSで起動が制限されることがあります。
+> The app is not signed with a Developer ID or notarized by Apple, so macOS may block it from opening.
 
-1. Xcode Command Line ToolsまたはXcodeを用意します。
-2. [ソースからビルド](#ソースからビルド)の手順でアプリをビルドしてインストールします。
-3. Codex CLIが未ログインの場合は、ターミナルで `codex login` を実行します。
-4. 通知を使う場合は、初回起動時に通知を許可します。
+1. Install Xcode Command Line Tools or Xcode.
+2. [Build and install the app](#build-from-source).
+3. If you haven't signed in to Codex CLI, run `codex login` in Terminal.
+4. To receive notifications, allow them when macOS asks.
 
-自動起動する場合は「システム設定 → 一般 → ログイン項目」に追加します。
+To start Codex Meter at login, add it under **System Settings → General → Login Items**.
 
-## 使い方
+## Using Codex Meter
 
-| 項目 | 操作・表示内容 |
+The app supports English and Japanese. It follows your macOS language preferences. To [set its language separately](https://support.apple.com/guide/mac-help/change-the-system-language-mh26684/mac), add Codex Meter under **System Settings → General → Language & Region → Applications**, then reopen the app.
+
+| Feature | What it does |
 | --- | --- |
-| 更新 | 5分ごと・スリープ復帰時に自動更新。手動更新は ⌘R |
-| 表示の切り替え | 「設定 → 表示」で残量／使用量を切り替え |
-| 二重リング | 外側は5時間枠、内側は週間枠 |
-| リセットチケット | 「リセットチケット」で有効期限を確認 |
-| 通知 | 利用枠の回復とチケットの追加を通知 |
-| 取得エラー | `!` で表示。「接続エラー…」から詳細を確認 |
-| 終了 | ⌘Q |
+| Refresh | Updates every five minutes and when the Mac wakes. Press ⌘R to refresh manually. |
+| Display | Choose **Remaining** or **Usage** under **Settings → Display**. |
+| Rings | The outer ring shows the five-hour limit. The inner ring shows the weekly limit. |
+| Reset tickets | Open **Reset Tickets** to see expiration dates. |
+| Notifications | Get notified when usage limits reset or reset tickets are added. |
+| Connection errors | An exclamation mark (`!`) appears in the menu bar. Select **Connection Error…** for details. |
+| Quit | Press ⌘Q. |
 
-CLI側のアカウントの利用状況を表示します。サーバーが返さない枠やチケットの詳細は表示できず、アプリ終了中は監視しません。
+The app shows usage for the account signed in to Codex CLI. It can only display the limits and ticket details returned by Codex, and it stops monitoring when you quit.
 
-## プライバシー
+## Privacy
 
-Codex CLIを通じてOpenAIから利用状況を取得します。アプリ独自に認証情報を読み取ったり複製したりせず、会話・モデル実行・リセットチケットの消費は行いません。
+Codex Meter fetches usage data from OpenAI through Codex CLI. The app does not read or copy credentials itself, start conversations, run models, or redeem reset tickets.
 
-以下の情報をMacのUserDefaults（`local.codex.meter`）に保存します。
+It stores the following on your Mac in UserDefaults (`local.codex.meter`):
 
-- アカウント識別用メールアドレス
-- 利用枠とチケットの情報
-- 取得日時
-- 表示・通知設定
+- The email address used to identify your account
+- Usage limits and reset ticket details
+- The time the data was fetched
+- Display and notification preferences
 
-開発者への送信やアクセス解析は行いません。
+The app does not send data to its developer or collect analytics.
 
-## アンインストール
+## Uninstall
 
-1. アプリを終了します。
-2. ログイン項目から解除します。
-3. アプリ本体を削除します。
+1. Quit Codex Meter.
+2. Remove it from Login Items if you added it there.
+3. Delete the app.
 
-保存情報も削除する場合は、アプリの終了後に以下を実行します。
+To also remove its saved data and settings, run this after quitting:
 
 ```sh
 defaults delete local.codex.meter
 ```
 
-CLIのログイン情報は削除されません。
+This does not sign you out of Codex CLI.
 
-## ソースからビルド
+## Build from source
 
-Xcode Command Line ToolsまたはXcodeが必要です。
+Run these commands from the repository with Xcode Command Line Tools or Xcode installed:
 
 ```sh
-zsh build.sh    # build/Codex Meter.app を生成
-zsh test.sh     # テスト
-zsh install.sh  # ~/Applicationsへ配置・起動
+zsh build.sh    # Build build/Codex Meter.app
+zsh test.sh     # Run the tests
+zsh install.sh  # Install in ~/Applications and open
 ```
 
-`install.sh` は同名アプリを更新し、旧版のLaunchAgentがあれば無効化・退避します。自動起動は登録しません。
+`install.sh` replaces any existing copy in `~/Applications`. If it finds the old LaunchAgent, it disables it and moves it to a backup. The script does not add the app to Login Items.
 
-## ライセンス
+## License
 
 [MIT License](LICENSE)

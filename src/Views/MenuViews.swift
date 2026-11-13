@@ -1,3 +1,4 @@
+// Renders usage cards and reset ticket rows, including tooltips and accessibility labels.
 import Cocoa
 
 func textLabel(_ text: String, size: CGFloat, weight: NSFont.Weight = .regular, secondary: Bool = false) -> NSTextField
@@ -16,8 +17,8 @@ final class MeterProgress: NSView {
         super.init(frame: frame)
         setAccessibilityElement(true)
         setAccessibilityRole(.progressIndicator)
-        setAccessibilityLabel("残量")
-        setAccessibilityValue("\(remaining)％")
+        setAccessibilityLabel(localized("Remaining"))
+        setAccessibilityValue("\(remaining)%")
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
     override func draw(_ dirtyRect: NSRect) {
@@ -44,35 +45,36 @@ final class WindowCard: NSView {
         value.font = .monospacedDigitSystemFont(ofSize: 28, weight: .medium)
         value.frame = NSRect(x: 16, y: 39, width: 130, height: 36)
         addSubview(value)
-        let kind = textLabel(showUsed ? "使用済み" : "残り", size: 11, secondary: true)
+        let kind = textLabel(showUsed ? localized("Used") : localized("Left"), size: 11, secondary: true)
         kind.alignment = .right
         kind.frame = NSRect(x: 170, y: 45, width: 96, height: 17)
         addSubview(kind)
         addSubview(MeterProgress(remaining: window.remaining, frame: NSRect(x: 18, y: 29, width: 248, height: 4)))
         var resetText = "—"
-        var resetDetail = "回復時刻は未取得"
+        var resetDetail = localized("Reset time unavailable")
         if let reset = window.resetsAt {
-            let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: "ja_JP")
-            formatter.dateFormat = "M/d HH:mm"
             let seconds = reset - now.timeIntervalSince1970
             let minutes = max(1, Int(ceil(seconds / 60)))
             let relative =
                 minutes >= 1440
-                ? "\(minutes / 1440)日 \((minutes % 1440) / 60)時間"
-                : minutes >= 60 ? "\(minutes / 60)時間 \(minutes % 60)分" : "\(minutes)分"
-            resetText = seconds <= 0 ? "回復待ち" : relative
-            resetDetail = "次回回復：\(formatter.string(from: Date(timeIntervalSince1970: reset)))"
+                ? localized("%lldd %lldh", minutes / 1440, (minutes % 1440) / 60)
+                : minutes >= 60 ? localized("%lldh %lldm", minutes / 60, minutes % 60) : localized("%lld min", minutes)
+            resetText = seconds <= 0 ? localized("Waiting for reset") : relative
+            resetDetail = localized("Next reset: %@", formatDate(Date(timeIntervalSince1970: reset), template: "Mdjm"))
         }
         let clock = NSImageView(frame: NSRect(x: 18, y: 7, width: 12, height: 12))
-        clock.image = NSImage(systemSymbolName: "clock", accessibilityDescription: "回復まで")
+        clock.image = NSImage(systemSymbolName: "clock", accessibilityDescription: localized("Time until reset"))
         clock.contentTintColor = .secondaryLabelColor
         addSubview(clock)
         let reset = textLabel(resetText, size: 11, secondary: true)
         reset.frame = NSRect(x: 36, y: 5, width: 230, height: 17)
         reset.toolTip = resetDetail
         addSubview(reset)
-        setAccessibilityLabel("\(window.label)、残り\(window.remaining)％。回復まで\(resetText)。\(resetDetail)")
+        let usage = showUsed
+            ? localized("%@: %lld%% used.", window.label, metric)
+            : localized("%@: %lld%% remaining.", window.label, metric)
+        let resetSummary = window.resetsAt == nil ? resetDetail : "\(resetText). \(resetDetail)"
+        setAccessibilityLabel("\(usage) \(resetSummary)")
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
 }
@@ -80,27 +82,24 @@ final class WindowCard: NSView {
 final class CreditExpiryRow: NSView {
     init(credit: Credit, index: Int, now: Date = Date()) {
         super.init(frame: NSRect(x: 0, y: 0, width: 274, height: 54))
-        let title = textLabel("リセットチケット \(index + 1)", size: 11, secondary: true)
+        let ticketTitle = localized("Reset Ticket %lld", index + 1)
+        let title = textLabel(ticketTitle, size: 11, secondary: true)
         title.frame = NSRect(x: 16, y: 31, width: 150, height: 16)
         addSubview(title)
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ja_JP")
-        formatter.dateFormat = "M/d HH:mm"
-        let dateText = credit.expiresAt.map { formatter.string(from: Date(timeIntervalSince1970: $0)) } ?? "—"
+        let expiry = credit.expiresAt.map(Date.init(timeIntervalSince1970:))
+        let dateText = expiry.map { formatDate($0, template: "Mdjm") } ?? "—"
         let date = textLabel(dateText, size: 13, weight: .medium)
         date.frame = NSRect(x: 16, y: 10, width: 145, height: 18)
         addSubview(date)
-        let remaining = textLabel(credit.timeLeft(now: now), size: 12, weight: .medium)
+        let timeLeft = credit.timeLeft(now: now)
+        let remaining = textLabel(timeLeft, size: 12, weight: .medium)
         remaining.alignment = .right
         remaining.frame = NSRect(x: 168, y: 11, width: 90, height: 17)
         addSubview(remaining)
-        let full = DateFormatter()
-        full.locale = Locale(identifier: "ja_JP")
-        full.dateFormat = "yyyy年M月d日(E) HH:mm:ss z"
-        let detail =
-            credit.expiresAt.map { "有効期限：\(full.string(from: Date(timeIntervalSince1970: $0)))" } ?? "有効期限を取得できません"
+        let detail = expiry.map { localized("Expires: %@", formatDate($0, template: "yMMMEdjmsz")) }
+            ?? localized("Expiry date unavailable")
         toolTip = detail
-        setAccessibilityLabel("リセットチケット\(index + 1)。\(detail)。\(credit.timeLeft(now: now))")
+        setAccessibilityLabel(localized("%@. %@. %@", ticketTitle, detail, timeLeft))
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
 }
@@ -111,7 +110,7 @@ final class CreditListMenu: NSMenu, NSMenuDelegate {
     init(snapshot: Snapshot) {
         details = snapshot.creditDetails
         count = snapshot.count
-        super.init(title: "リセットチケット")
+        super.init(title: localized("Reset Tickets"))
         delegate = self
         minimumWidth = 274
         autoenablesItems = false
@@ -134,7 +133,14 @@ final class CreditListMenu: NSMenu, NSMenuDelegate {
         }
         let missing = count.map { max(0, $0 - sorted.count) } ?? 0
         if missing > 0 || sorted.isEmpty {
-            let text = count == 0 ? "リセットチケットなし" : missing > 0 ? "\(missing)枚 · 期限未取得" : "期限未取得"
+            let text: String
+            if count == 0 {
+                text = localized("No reset tickets")
+            } else if missing > 0 {
+                text = localized("%lld with unknown expiry", missing)
+            } else {
+                text = localized("Expiry unknown")
+            }
             let item = NSMenuItem(title: text, action: nil, keyEquivalent: "")
             addItem(item)
         }

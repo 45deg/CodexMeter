@@ -1,20 +1,20 @@
+// Prints usage and ticket expiry details for the --check command.
 import Foundation
 
 func checkConnection() {
     do {
         let snapshot = try fetchLimits()
-        print(
-            "取得成功：" + snapshot.windows.map { "\($0.label) 残り\($0.remaining)%" }.joined(separator: " / ")
-                + "、リセットチケット \(snapshot.count.map(String.init) ?? "不明")枚")
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ja_JP")
-        formatter.dateFormat = "yyyy/MM/dd HH:mm z"
+        let usage = snapshot.windows.map { localized("%@: %lld%% remaining", $0.label, $0.remaining) }
+            .joined(separator: " / ")
+        let count = snapshot.count.map { localized("%lld", $0) } ?? localized("Unknown")
+        print(localized("Usage fetched: %@. Reset tickets: %@", usage, count))
         for credit in (snapshot.creditDetails ?? []).sorted(by: {
             ($0.expiresAt ?? .infinity) < ($1.expiresAt ?? .infinity)
         }) {
-            print(
-                "リセットチケット：\(credit.expiresAt.map { formatter.string(from: Date(timeIntervalSince1970: $0)) } ?? "期限未取得") · \(credit.timeLeft())"
-            )
+            let expiry = credit.expiresAt.map {
+                formatDate(Date(timeIntervalSince1970: $0), template: "yMdjmz")
+            } ?? localized("Expiry unknown")
+            print(localized("Reset ticket: %@ · %@", expiry, credit.timeLeft()))
         }
     } catch {
         fputs("\(error.localizedDescription)\n", stderr)
